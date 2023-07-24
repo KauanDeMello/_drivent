@@ -6,40 +6,76 @@ import { notFoundError } from '@/errors';
 export async function getBookingByUser(req: Request, res: Response) {
   const userId = req.userId;
 
-  const booking = await prisma.booking.findFirst({
-    where: { userId },
-    include: { Room: true },
-  });
-
-  if (!booking) {
-    return res.sendStatus(httpStatus.NOT_FOUND);
+  async function createBooking(req: Request, res: Response) {
+    const { userId } = req;
+    const { roomId } = req.body;
+  
+    const room = await prisma.room.findUnique({
+      where: {
+        id: roomId,
+      },
+      include: {
+        Booking: true,
+      },
+    });
+  
+    if (!room) {
+      throw new NotFoundError('Quarto não encontrado.');
+    }
+  
+    if (room.capacity <= room.Booking.length) {
+      throw new ForbiddenError('Quarto sem vaga disponível.');
+    }
+  
+ 
+    const booking = await prisma.booking.create({
+      data: {
+        userId,
+        roomId,
+      },
+    });
+  
+    return res.status(httpStatus.OK).json({
+      id: booking.id,
+    });
   }
+  
+  async function updateBooking(req: Request, res: Response) {
+    const { userId } = req;
+    const { bookingId } = req.params;
+    const { roomId } = req.body;
+  
+    const room = await prisma.room.findUnique({
+      where: {
+        id: roomId,
+      },
+      include: {
+        Booking: true,
+      },
+    });
+  
+    if (!room) {
+      throw new NotFoundError('Quarto não encontrado.');
+    }
+  
+    if (room.capacity <= room.Booking.length) {
+      throw new ForbiddenError('Quarto sem vaga disponível.');
+    }
+  
 
-  return res.status(httpStatus.OK).json({ id: booking.id, Room: booking.Room });
-}
-
-export async function createBooking(req: Request, res: Response) {
-  const userId = req.userId;
-
-
-  const ticket = await prisma.ticket.findFirst({
-    where: { userId, type: 'presencial', hasAccommodation: true, status: 'paid' },
-  });
-
-  if (!ticket) {
-    return res.sendStatus(httpStatus.BAD_REQUEST);
+  
+    const booking = await prisma.booking.update({
+      where: {
+        id: bookingId,
+      },
+      data: {
+        roomId,
+      },
+    });
+  
+    return res.status(httpStatus.OK).json({
+      id: booking.id,
+    });
   }
-
-
-  const roomId = 'ROOM_ID'; // Substitua pelo ID do quarto selecionado
-
-  // Criar a reserva
-  const booking = await prisma.booking.create({
-    data: {
-      userId,
-      roomId,
-    },
-  });
-
-  return res.status(httpStatus.CREATED).json({ id: booking.id });
-}
+  
+  export { createBooking, updateBooking };

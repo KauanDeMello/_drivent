@@ -83,4 +83,139 @@ describe('Booking Routes', () => {
 
     expect(response.body).toEqual({});
   });
+
+  describe('POST /booking', () => {
+    it('should return 200 and bookingId if roomId is valid and room has available capacity', async () => {
+      const room = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste',
+          capacity: 3, 
+        },
+      });
+  
+      const response = await request(app)
+        .post('/booking')
+        .send({
+          roomId: room.id,
+        });
+  
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('id');
+    });
+  
+    it('should return 404 if roomId does not exist', async () => {
+      const response = await request(app)
+        .post('/booking')
+        .send({
+          roomId: 9999, // ID inválido
+        });
+  
+      expect(response.status).toBe(404);
+    });
+  
+    it('should return 403 if room does not have available capacity', async () => {
+      const room = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste',
+          capacity: 0;
+        },
+      });
+  
+      const response = await request(app)
+        .post('/booking')
+        .send({
+          roomId: room.id,
+        });
+  
+      expect(response.status).toBe(403);
+    });
+  
+    it('should return 403 if user does not meet booking requirements', async () => {
+      
+    });
+  });
+  
+  describe('PUT /booking/:bookingId', () => {
+    it('should return 200 and updated booking data if roomId is valid and room has available capacity', async () => {
+      const room1 = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste 1',
+          capacity: 3, 
+        },
+      });
+  
+      const room2 = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste 2',
+          capacity: 3, 
+        },
+      });
+  
+      const booking = await prisma.booking.create({
+        data: {
+          userId: 1, 
+          roomId: room1.id, 
+        },
+      });
+  
+      const response = await request(app)
+        .put(`/booking/${booking.id}`)
+        .send({
+          roomId: room2.id,
+        });
+  
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('id');
+    });
+  
+    it('should return 404 if bookingId does not exist', async () => {
+      const response = await request(app)
+        .put('/booking/9999')
+        .send({
+          roomId: 1, 
+        });
+  
+      expect(response.status).toBe(404);
+    });
+  
+    it('should return 404 if roomId does not exist', async () => {
+      const booking = await prisma.booking.create({
+        data: {
+          userId: 1, 
+          roomId: 1, 
+        },
+      });
+  
+      const response = await request(app)
+        .put(`/booking/${booking.id}`)
+        .send({
+          roomId: 9999,
+        });
+  
+      expect(response.status).toBe(404);
+    });
+  
+    it('should return 403 if room does not have available capacity', async () => {
+      const room1 = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste 1',
+          capacity: 3, 
+        },
+      });
+  
+      const room2 = await prisma.room.create({
+        data: {
+          name: 'Quarto Teste 2',
+          capacity: 0, 
+        },
+      });
+  
+      const booking = await prisma.booking.create({
+        data: {
+          userId: 1, 
+          roomId: room1.id, 
+        },
+      });
+  
+      const response = await
 });
